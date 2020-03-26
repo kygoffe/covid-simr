@@ -1,5 +1,5 @@
 
-setwd("C:/corona v2/c/")
+setwd("xxx")
 
 source("covid_simr.R")
 
