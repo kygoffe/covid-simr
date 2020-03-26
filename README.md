@@ -1,5 +1,5 @@
 # covid19_capacity_related_deaths_projection
-simple script to generate a projection of deaths arising from insufficent hospital capacity for a given trajectory of covid19 cases requiring hospitalisation
+simple script to generate a projection of deaths arising from insufficent acute/ICU capacity for a given trajectory of covid19 cases requiring hospitalisation, and to model the effect of various user-defined mitigating scenarios
 
 
 ### author:   BNSSG Modelling and Analytics
