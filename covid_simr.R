@@ -254,11 +254,13 @@ outputs<-outputs_sim %>%
   group_by(time,outcome) %>%
   summarise(mean=mean(value),median=median(value),
             q30=quantile(value,0.3),
+            q25=quantile(value,0.25),
             q15=quantile(value,0.15),
             q05=quantile(value,0.05),
             q025=quantile(value,0.025),
             q01=quantile(value,0.01),
             q70=quantile(value,0.7),
+            q75=quantile(value,0.75),
             q85=quantile(value,0.85),
             q95=quantile(value,0.95),
             q975=quantile(value,0.975),
@@ -267,6 +269,30 @@ outputs<-outputs_sim %>%
   pivot_wider(names_from=c(outcome,type),values_from=value) %>%
   mutate(dates=seq(from=min(inputs$dates)+time-1,by=1,length.out=1))
 
+
+outputs_cum<-outputs_sim %>%
+  pivot_longer(cols=-c(rep,time),names_to="outcome",values_to="value") %>%
+  group_by(outcome,rep) %>%
+  mutate(value_cum=cumsum(value)) %>%
+  select(-value) %>%
+  group_by(time,outcome) %>%
+  summarise(mean=mean(value_cum),
+            median=median(value_cum),
+            q30=quantile(value_cum,0.3),
+            q25=quantile(value_cum,0.25),
+            q15=quantile(value_cum,0.15),
+            q05=quantile(value_cum,0.05),
+            q025=quantile(value_cum,0.025),
+            q01=quantile(value_cum,0.01),
+            q70=quantile(value_cum,0.7),
+            q75=quantile(value_cum,0.75),
+            q85=quantile(value_cum,0.85),
+            q95=quantile(value_cum,0.95),
+            q975=quantile(value_cum,0.975),
+            q99=quantile(value_cum,0.99)) %>%
+  pivot_longer(cols=-c(time,outcome),names_to="type",values_to="value_cum") %>%
+  pivot_wider(names_from=c(outcome,type),values_from=value_cum) %>%
+  mutate(dates=seq(from=min(inputs$dates)+time-1,by=1,length.out=1))
 
 ####################################################################################################################################################################
 
@@ -339,22 +365,23 @@ plot3<-outputs %>%
   scale_x_date(date_breaks="months",date_labels="%b-%y")
 
 #cumulative total of admitted patients over simulation period
-plot4<-outputs %>%
+#cumulative total of admitted patients over simulation period
+plot4<-outputs_cum %>%
   ggplot(aes(x=dates)) +
   #admitted
-  geom_ribbon(aes(ymin=cumsum(admitted_q01),ymax=cumsum(admitted_q025)),fill="darkorange",alpha=0.6) +
-  geom_ribbon(aes(ymin=cumsum(admitted_q025),ymax=cumsum(admitted_q05)),fill="darkorange1",alpha=0.6) +
-  geom_ribbon(aes(ymin=cumsum(admitted_q05),ymax=cumsum(admitted_q15)),fill="darkorange2",alpha=0.6) +
-  geom_ribbon(aes(ymin=cumsum(admitted_q15),ymax=cumsum(admitted_q30)),fill="darkorange3",alpha=0.6) +
-  geom_ribbon(aes(ymin=cumsum(admitted_q30),ymax=cumsum(admitted_q70)),fill="darkorange4",alpha=0.6) +
-  geom_ribbon(aes(ymin=cumsum(admitted_q70),ymax=cumsum(admitted_q85)),fill="darkorange3",alpha=0.6) +
-  geom_ribbon(aes(ymin=cumsum(admitted_q85),ymax=cumsum(admitted_q95)),fill="darkorange2",alpha=0.6) +
-  geom_ribbon(aes(ymin=cumsum(admitted_q95),ymax=cumsum(admitted_q975)),fill="darkorange1",alpha=0.6) +
-  geom_ribbon(aes(ymin=cumsum(admitted_q975),ymax=cumsum(admitted_q99)),fill="darkorange",alpha=0.6) +
-  geom_line(aes(y=cumsum(admitted_median))) +
+  geom_ribbon(aes(ymin=admitted_q01,ymax=admitted_q025),fill="darkorange",alpha=0.6) +
+  geom_ribbon(aes(ymin=admitted_q025,ymax=admitted_q05),fill="darkorange1",alpha=0.6) +
+  geom_ribbon(aes(ymin=admitted_q05,ymax=admitted_q15),fill="darkorange2",alpha=0.6) +
+  geom_ribbon(aes(ymin=admitted_q15,ymax=admitted_q30),fill="darkorange3",alpha=0.6) +
+  geom_ribbon(aes(ymin=admitted_q30,ymax=admitted_q70),fill="darkorange4",alpha=0.6) +
+  geom_ribbon(aes(ymin=admitted_q70,ymax=admitted_q85),fill="darkorange3",alpha=0.6) +
+  geom_ribbon(aes(ymin=admitted_q85,ymax=admitted_q95),fill="darkorange2",alpha=0.6) +
+  geom_ribbon(aes(ymin=admitted_q95,ymax=admitted_q975),fill="darkorange1",alpha=0.6) +
+  geom_ribbon(aes(ymin=admitted_q975,ymax=admitted_q99),fill="darkorange",alpha=0.6) +
+  geom_line(aes(y=admitted_median)) +
   labs(title="Outputs: Cumulative total for admitted patients") +
   scale_x_date(date_breaks="months",date_labels="%b-%y") +
-  ylim(0,max(cumsum(outputs$admitted_q99),cumsum(outputs$rejected_died_q99),cumsum(outputs$rejected_survived_q99))) +
+  ylim(0,max(outputs_cum$admitted_q99,outputs_cum$rejected_died_q99,outputs_cum$rejected_survived_q99)) +
   theme(axis.title.x=element_blank(),
         axis.title.y=element_blank(),
         plot.title=element_text(size=11),
@@ -362,44 +389,44 @@ plot4<-outputs %>%
 
 #cumulative total of patients who could not be admitted because of capacity constraints but did
 #surivive, over simulation period
-plot5<-outputs %>%
+plot5<-outputs_cum %>%
   ggplot(aes(x=dates)) +
   #rejected-survived
-  geom_ribbon(aes(ymin=cumsum(rejected_survived_q01),ymax=cumsum(rejected_survived_q025)),fill="chartreuse",alpha=0.6) +
-  geom_ribbon(aes(ymin=cumsum(rejected_survived_q025),ymax=cumsum(rejected_survived_q05)),fill="chartreuse1",alpha=0.6) +
-  geom_ribbon(aes(ymin=cumsum(rejected_survived_q05),ymax=cumsum(rejected_survived_q15)),fill="chartreuse2",alpha=0.6) +
-  geom_ribbon(aes(ymin=cumsum(rejected_survived_q15),ymax=cumsum(rejected_survived_q30)),fill="chartreuse3",alpha=0.6) +
-  geom_ribbon(aes(ymin=cumsum(rejected_survived_q30),ymax=cumsum(rejected_survived_q70)),fill="chartreuse4",alpha=0.6) +
-  geom_ribbon(aes(ymin=cumsum(rejected_survived_q70),ymax=cumsum(rejected_survived_q85)),fill="chartreuse3",alpha=0.6) +
-  geom_ribbon(aes(ymin=cumsum(rejected_survived_q85),ymax=cumsum(rejected_survived_q95)),fill="chartreuse2",alpha=0.6) +
-  geom_ribbon(aes(ymin=cumsum(rejected_survived_q95),ymax=cumsum(rejected_survived_q975)),fill="chartreuse1",alpha=0.6) +
-  geom_ribbon(aes(ymin=cumsum(rejected_survived_q975),ymax=cumsum(rejected_survived_q99)),fill="chartreuse",alpha=0.6) +
-  geom_line(aes(y=cumsum(rejected_survived_median))) +
+  geom_ribbon(aes(ymin=rejected_survived_q01,ymax=rejected_survived_q025),fill="chartreuse",alpha=0.6) +
+  geom_ribbon(aes(ymin=rejected_survived_q025,ymax=rejected_survived_q05),fill="chartreuse1",alpha=0.6) +
+  geom_ribbon(aes(ymin=rejected_survived_q05,ymax=rejected_survived_q15),fill="chartreuse2",alpha=0.6) +
+  geom_ribbon(aes(ymin=rejected_survived_q15,ymax=rejected_survived_q30),fill="chartreuse3",alpha=0.6) +
+  geom_ribbon(aes(ymin=rejected_survived_q30,ymax=rejected_survived_q70),fill="chartreuse4",alpha=0.6) +
+  geom_ribbon(aes(ymin=rejected_survived_q70,ymax=rejected_survived_q85),fill="chartreuse3",alpha=0.6) +
+  geom_ribbon(aes(ymin=rejected_survived_q85,ymax=rejected_survived_q95),fill="chartreuse2",alpha=0.6) +
+  geom_ribbon(aes(ymin=rejected_survived_q95,ymax=rejected_survived_q975),fill="chartreuse1",alpha=0.6) +
+  geom_ribbon(aes(ymin=rejected_survived_q975,ymax=rejected_survived_q99),fill="chartreuse",alpha=0.6) +
+  geom_line(aes(y=rejected_survived_median)) +
   labs(title="Outputs: Cumulative total for rejected and survived") +
   scale_x_date(date_breaks="months",date_labels="%b-%y") +
-  ylim(0,max(cumsum(outputs$admitted_q99),cumsum(outputs$rejected_died_q99),cumsum(outputs$rejected_survived_q99))) +
+  ylim(0,max(outputs_cum$admitted_q99,outputs_cum$rejected_died_q99,outputs_cum$rejected_survived_q99)) +
   theme(axis.title.x=element_blank(),
         axis.title.y=element_blank(),
         plot.title=element_text(size=11),
         axis.text.x=element_text(angle=45,hjust=1))
 
 #cumulative total of patients who died as a result of insufficent capacity over simulation period
-plot6<-outputs %>%
+plot6<-outputs_cum %>%
   ggplot(aes(x=dates)) +
   #rejected-died
-  geom_ribbon(aes(ymin=cumsum(rejected_died_q01),ymax=cumsum(rejected_died_q025)),fill="yellow1",alpha=0.6) +
-  geom_ribbon(aes(ymin=cumsum(rejected_died_q025),ymax=cumsum(rejected_died_q05)),fill="orange2",alpha=0.6) +
-  geom_ribbon(aes(ymin=cumsum(rejected_died_q05),ymax=cumsum(rejected_died_q15)),fill="orangered3",alpha=0.6) +
-  geom_ribbon(aes(ymin=cumsum(rejected_died_q15),ymax=cumsum(rejected_died_q30)),fill="red3",alpha=0.6) +
-  geom_ribbon(aes(ymin=cumsum(rejected_died_q30),ymax=cumsum(rejected_died_q70)),fill="red2",alpha=0.6) +
-  geom_ribbon(aes(ymin=cumsum(rejected_died_q70),ymax=cumsum(rejected_died_q85)),fill="red3",alpha=0.6) +
-  geom_ribbon(aes(ymin=cumsum(rejected_died_q85),ymax=cumsum(rejected_died_q95)),fill="orangered3",alpha=0.6) +
-  geom_ribbon(aes(ymin=cumsum(rejected_died_q95),ymax=cumsum(rejected_died_q975)),fill="orange2",alpha=0.6) +
-  geom_ribbon(aes(ymin=cumsum(rejected_died_q975),ymax=cumsum(rejected_died_q99)),fill="yellow1",alpha=0.6) +
-  geom_line(aes(y=cumsum(rejected_died_median))) +
+  geom_ribbon(aes(ymin=rejected_died_q01,ymax=rejected_died_q025),fill="yellow1",alpha=0.6) +
+  geom_ribbon(aes(ymin=rejected_died_q025,ymax=rejected_died_q05),fill="orange2",alpha=0.6) +
+  geom_ribbon(aes(ymin=rejected_died_q05,ymax=rejected_died_q15),fill="orangered3",alpha=0.6) +
+  geom_ribbon(aes(ymin=rejected_died_q15,ymax=rejected_died_q30),fill="red3",alpha=0.6) +
+  geom_ribbon(aes(ymin=rejected_died_q30,ymax=rejected_died_q70),fill="red2",alpha=0.6) +
+  geom_ribbon(aes(ymin=rejected_died_q70,ymax=rejected_died_q85),fill="red3",alpha=0.6) +
+  geom_ribbon(aes(ymin=rejected_died_q85,ymax=rejected_died_q95),fill="orangered3",alpha=0.6) +
+  geom_ribbon(aes(ymin=rejected_died_q95,ymax=rejected_died_q975),fill="orange2",alpha=0.6) +
+  geom_ribbon(aes(ymin=rejected_died_q975,ymax=rejected_died_q99),fill="yellow1",alpha=0.6) +
+  geom_line(aes(y=rejected_died_median)) +
   labs(title="Outputs: Cumulative total for rejected and died") +
   scale_x_date(date_breaks="months",date_labels="%b-%y") +
-  ylim(0,max(cumsum(outputs$admitted_q99),cumsum(outputs$rejected_died_q99),cumsum(outputs$rejected_survived_q99))) +
+  ylim(0,max(outputs_cum$admitted_q99,outputs_cum$rejected_died_q99,outputs_cum$rejected_survived_q99)) +
   theme(axis.title.x=element_blank(),
         axis.title.y=element_blank(),
         plot.title=element_text(size=11),
@@ -422,8 +449,19 @@ dev.off()
 #in same location script was run from
 write.csv(inputs,paste0("inputs",filename_ext,".csv"),row.names=FALSE)
 write.csv(outputs,paste0("outputs",filename_ext,".csv"),row.names=FALSE)
+write.csv(outputs_cum,paste0("outputs_cumulative",filename_ext,".csv"),row.names=FALSE)
 
 #return outputs dataframe
-return(outputs)
+fn_return<-data.frame(days_at_max_occ_mean=length(which(outputs$occ_mean>=0.99*cap)),
+                      days_at_max_occ_25=length(which(outputs$occ_q25>=0.99*cap)),
+                      days_at_max_occ_75=length(which(outputs$occ_q75>=0.99*cap)),
+                      max_daily_deaths_mean=round(max(outputs$rejected_died_mean)),
+                      max_daily_deaths_25=round(max(outputs$rejected_died_q25)),
+                      max_daily_deaths_75=round(max(outputs$rejected_died_q75)),
+                      cum_deaths_mean=round(max(outputs_cum$rejected_died_mean)),
+                      cum_deaths_25=round(max(outputs_cum$rejected_died_q25)),
+                      cum_deaths_75=round(max(outputs_cum$rejected_died_q75)))
+
+return(fn_return)
 
 }
